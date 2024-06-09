@@ -7,6 +7,7 @@
 #include <string_view>
 #include <variant>
 #include <vector>
+#include <cassert>
 
 // Позиция ячейки. Индексация с нуля.
 struct Position {
@@ -39,16 +40,44 @@ public:
     enum class Category {
         Ref,    // ссылка на ячейку с некорректной позицией
         Value,  // ячейка не может быть трактована как число
-        Div0,  // в результате вычисления возникло деление на ноль
+        Arithmetic,  // в результате вычисления возникло деление на ноль
     };
 
-    FormulaError(Category category);
+    FormulaError(Category category)
+    :category_(category){}
 
-    Category GetCategory() const;
+    Category GetCategory() const
+    {
+        return category_;
+    }
 
-    bool operator==(FormulaError rhs) const;
+    bool operator==(FormulaError rhs) const
+    {
+        return category_ == rhs.category_;
+    }
 
-    std::string_view ToString() const;
+    std::string ToString() const
+    {
+        switch(category_)
+        {
+            case Category::Ref:
+                return "#REF!";
+                break;
+                
+            case Category::Value:
+                return "#VALUE!";
+                break;
+                
+            case Category::Arithmetic:
+                return "#ARITHM!";
+                break;
+                
+            default:
+                assert(false);
+                return "Something..";
+                break;
+        }
+    }
 
 private:
     Category category_;
@@ -106,7 +135,8 @@ inline constexpr char ESCAPE_SIGN = '\'';
 class SheetInterface {
 public:
     virtual ~SheetInterface() = default;
-
+    
+    using CachedValue = std::variant<std::string, double, FormulaError>;
     // Задаёт содержимое ячейки. Если текст начинается со знака "=", то он
     // интерпретируется как формула. Если задаётся синтаксически некорректная
     // формула, то бросается исключение FormulaException и значение ячейки не
@@ -126,7 +156,9 @@ public:
     // Если ячейка пуста, может вернуть nullptr.
     virtual const CellInterface* GetCell(Position pos) const = 0;
     virtual CellInterface* GetCell(Position pos) = 0;
-
+    
+    virtual CachedValue GetCachedValue(Position pos) const = 0;
+    virtual std::vector<Position> GetReferencedPositions(Position pos) const = 0;
     // Очищает ячейку.
     // Последующий вызов GetCell() для этой ячейки вернёт либо nullptr, либо
     // объект с пустым текстом.
@@ -136,7 +168,9 @@ public:
     // Определяется как ограничивающий прямоугольник всех ячеек с непустым
     // текстом.
     virtual Size GetPrintableSize() const = 0;
-
+    
+    virtual void StoreCache(Position pos, CachedValue str) const = 0;
+    virtual void StoreRefs(Position pos, std::vector<Position> refs) const = 0;
     // Выводит всю таблицу в переданный поток. Столбцы разделяются знаком
     // табуляции. После каждой строки выводится символ перевода строки. Для
     // преобразования ячеек в строку используются методы GetValue() или GetText()
