@@ -45,7 +45,7 @@ void Cell::Set(std::string text)
         sheet_.StoreRefs(current_pos_, refs);
         
         std::string expr = formula->GetExpression();
-        expr = '=' + expr;
+        expr = FORMULA_SIGN + expr;
         
         impl_.release();
         impl_ = std::make_unique<FormulaImpl>(sheet_, expr);

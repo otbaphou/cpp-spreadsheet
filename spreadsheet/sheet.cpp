@@ -33,21 +33,22 @@ void Sheet::SetCell(Position pos, std::string text)
         width = pos.col + 1;
     }
     
+    std::unique_ptr<Cell>& cell_ptr = data_[pos.row][pos.col];
     
-    if(data_[pos.row][pos.col] == nullptr)
+    if(cell_ptr == nullptr)
     {
-        data_[pos.row][pos.col] = std::unique_ptr<Cell>(new Cell{*this});
+        cell_ptr = std::unique_ptr<Cell>(new Cell{*this});
     }
     
-    data_[pos.row][pos.col]->SetPos(pos);
+    cell_ptr->SetPos(pos);
     
-    std::string tmp = data_[pos.row][pos.col]->GetText();
+    std::string tmp = cell_ptr->GetText();
     
-    data_[pos.row][pos.col]->Set(text);
+    cell_ptr->Set(text);
     
     if(HasCyclicDependency(pos))
     {
-        data_[pos.row][pos.col]->Set(tmp);
+        cell_ptr->Set(tmp);
         throw CircularDependencyException("Cyclic dependency detected!");
     }
 }
