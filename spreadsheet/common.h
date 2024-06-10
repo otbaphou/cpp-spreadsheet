@@ -62,21 +62,14 @@ public:
         {
             case Category::Ref:
                 return "#REF!";
-                break;
                 
             case Category::Value:
                 return "#VALUE!";
-                break;
                 
             case Category::Arithmetic:
                 return "#ARITHM!";
-                break;
-                
-            default:
-                assert(false);
-                return "Something..";
-                break;
         }
+        throw std::out_of_range("Unknown FormulaError Category!");
     }
 
 private:

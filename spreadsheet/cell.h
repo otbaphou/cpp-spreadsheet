@@ -24,41 +24,34 @@ public:
     bool IsReferenced() const;
 
 private:
-//можете воспользоваться нашей подсказкой, но это необязательно.
+
     class Impl
     {
         public:
-        
-        virtual void SetValue(std::string& text)
-        {
-            value_ = std::move(text);
-        }
         
         virtual Value GetValue() const
         {
             return "";
         }
         
-        std::string GetText()
+        virtual std::string GetText() const
         {
-            return value_;
+            return "";
         }
-        
-        protected:
-        
-        std::string value_;
     };
     
     class EmptyImpl : public Impl
     {
         public:
         
-        EmptyImpl()
-        {
-            value_ = "";
-        }
+        EmptyImpl() = default;
         
         Value GetValue() const override
+        {
+            return "";
+        }
+        
+        std::string GetText() const override
         {
             return "";
         }
@@ -75,7 +68,7 @@ private:
             value_ = std::move(text);
         }
                 
-        void SetValue(std::string& text) override
+        void SetValue(std::string& text)
         {
             value_ = std::move(text);
         }
@@ -90,6 +83,14 @@ private:
             
             return value_;
         }
+        
+        std::string GetText() const override
+        {
+            return value_;
+        }
+        
+        private:
+        std::string value_;
     };
     
     class FormulaImpl : public Impl
@@ -104,7 +105,7 @@ private:
             value_ = std::move(text);
         }
                 
-        void SetValue(std::string& text) override
+        void SetValue(std::string& text)
         {
             value_ = std::move(text);
         }
@@ -130,7 +131,13 @@ private:
             
         }
         
+        std::string GetText() const override
+        {
+            return value_;
+        }
+        
         private:
+        std::string value_;
         const SheetInterface& sheet_;
     };
     

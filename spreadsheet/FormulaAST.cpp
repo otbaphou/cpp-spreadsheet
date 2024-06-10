@@ -150,15 +150,12 @@ public:
         {
             case '+':
                 return lhs_->Evaluate(sheet) + rhs_->Evaluate(sheet);
-                break;
                 
             case '-':
                 return lhs_->Evaluate(sheet) - rhs_->Evaluate(sheet);
-                break;
                 
             case '*':
                 return lhs_->Evaluate(sheet) * rhs_->Evaluate(sheet);
-                break;
                 
             case '/':
                 double result = lhs_->Evaluate(sheet) / rhs_->Evaluate(sheet);
@@ -167,11 +164,9 @@ public:
                     throw FormulaError::Category::Arithmetic;
                 }
                 return result;
-                break;
         }
         
-        assert(false);
-        return 12;
+        throw FormulaException("Error! (BinaryOpExpr::Evaluate())");
     }
 
 private:
@@ -209,7 +204,7 @@ public:
         return EP_UNARY;
     }
 
-    double Evaluate([[maybe_unused]] const SheetInterface& sheet) const override 
+    double Evaluate(const SheetInterface& sheet) const override 
     {
         switch(type_)
         {
@@ -218,12 +213,9 @@ public:
                 
             case '-':
                 return -operand_->Evaluate(sheet);
-                
-            default:
-                // and now I have to do this as well
-                assert(false);
-                return -12345689;
         }
+        
+        throw FormulaException("Error! (UnaryOpExpr::Evaluate())");
     }
 
 private:
@@ -258,59 +250,50 @@ public:
 
     double Evaluate(const SheetInterface& sheet) const override 
     {
-        //std::cout << "Cell Exp!\n";
         if(cell_ == nullptr)
         {
             throw FormulaException("#REF!");
         }
          
         std::variant<std::string, double, FormulaError> val = sheet.GetCachedValue(*cell_);       
-        
         if(std::holds_alternative<double>(val))
         {
-            //std::cout << std::get<double>(val);
             return std::get<double>(val);
         }
-        else
+        
+        if(std::holds_alternative<std::string>(val))
         {
-            if(std::holds_alternative<std::string>(val))
+            std::string s(std::get<std::string>(val));
+                
+            for (char c : s)
             {
-                std::string s(std::get<std::string>(val));
-                
-                for (char c : s)
+                if (!std::isdigit(c) && c != '.' && c != '-') 
                 {
-                    if (!std::isdigit(c) && c != '.' && c != '-') 
-                    {
-                        throw FormulaException("#VALUE!");
-                    }
-                }
-                
-                try
-                {
-                    return s.empty() ? 0 : stod(s);
-                }
-                catch(const std::out_of_range& e)
-                {
-                    throw FormulaException("#VALUE!");
-                }
-                catch(const std::invalid_argument& e)
-                {
-                    //return FormulaError::Category::Value;
                     throw FormulaException("#VALUE!");
                 }
             }
-            else
+                
+            try
             {
-                if(std::holds_alternative<FormulaError>(val))
-                {
-                    //throw FormulaException("#VALUE!");
-                    throw FormulaException(std::get<FormulaError>(val).ToString());
-                }
+                return s.empty() ? 0 : stod(s);
+            }
+            catch(const std::out_of_range& e)
+            {
+                throw FormulaException("#VALUE!");
+            }
+            catch(const std::invalid_argument& e)
+            {
+                throw FormulaException("#VALUE!");
             }
             
-            assert(false);
-            return -145;
         }
+        
+        if(std::holds_alternative<FormulaError>(val))
+        {
+            throw FormulaException(std::get<FormulaError>(val).ToString());
+        }
+        
+        throw FormulaException("Error! (CellExpr::Evaluate())");
     }
 
 private:
@@ -501,17 +484,13 @@ double FormulaAST::Execute(const SheetInterface& sheet) const
     catch(FormulaException& e)
     {
         throw e;
-        return 52;
     }
     catch(...)
     {
-        //std::cout << "Bruh\n";
         throw FormulaException("#ARITHM!");
-        /*std::cerr << "UNKNOWN EXCEPTION IN FormulaAST:Execute()!\n"; 
-        assert(false);
-        return 55;*/
     }
-    return 60;
+    
+    throw FormulaException("Error! (FormulaAST::Execute())");
 }
 
 FormulaAST::FormulaAST(std::unique_ptr<ASTImpl::Expr> root_expr, std::forward_list<Position> cells)

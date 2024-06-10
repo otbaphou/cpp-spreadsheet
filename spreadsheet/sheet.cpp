@@ -11,12 +11,7 @@
 using namespace std::literals;
 
 Sheet::~Sheet() 
-{
-    /*for(auto& entry : cache_)
-    {
-        ClearCell(entry.first);
-    }*/
-}
+{}
 
 void CheckPos(Position pos)
 {
@@ -61,11 +56,13 @@ const CellInterface* Sheet::GetCell(Position pos) const
 {
     CheckPos(pos);
     
-    if(data_.find(pos.row) != data_.end())
+    const std::map<int, std::map<int, std::unique_ptr<Cell>>>::const_iterator row_value = data_.find(pos.row);
+    
+    if(row_value != data_.end())
     {
-        if(data_.at(pos.row).find(pos.col) != data_.at(pos.row).end())
+        if((*row_value).second.find(pos.col) != (*row_value).second.end())
         {    
-            return (data_.at(pos.row)).at(pos.col).get();
+            return (*row_value).second.at(pos.col).get();
         }
     }
     
@@ -95,7 +92,6 @@ void Sheet::ClearCell(Position pos)
         
     if(GetCell({pos.row, pos.col}) != nullptr)
     {
-        //std::cout << "ERASED VALUES FROM CACHE & DEPS: " << "{" << pos.row << ", " << pos.col << "}!\n";
         cache_.erase(pos);
         dependencies_.erase(pos);
         data_[pos.row][pos.col]->Clear();
@@ -111,7 +107,7 @@ void Sheet::ClearCell(Position pos)
     int new_height = data_.empty() ? 0 : data_.rbegin()->first + 1;
     int new_width = 0;
     
-    for(auto& row : data_)
+    for(const auto& row : data_)
     {
         int tmp_width = row.second.rbegin()->first;
         
@@ -166,12 +162,14 @@ void Sheet::PrintValues(std::ostream& output) const
 const Cell* Sheet::GetConcreteCell(Position pos) const
 {
     CheckPos(pos);
-    
-    if(data_.find(pos.row) != data_.end())
+        
+    const std::map<int, std::map<int, std::unique_ptr<Cell>>>::const_iterator row_value = data_.find(pos.row);
+
+    if(row_value != data_.end())
     {
-        if(data_.at(pos.row).find(pos.col) != data_.at(pos.row).end())
+        if((*row_value).second.find(pos.col) != (*row_value).second.end())
         {    
-            return (data_.at(pos.row)).at(pos.col).get();
+            return (*row_value).second.at(pos.col).get();
         }
     }
     
@@ -183,7 +181,9 @@ Cell* Sheet::GetConcreteCell(Position pos)
     CheckPos(pos);
     
     if(pos.row < height && pos.col < width)
+    {    
         return data_[pos.row][pos.col].get();
+    }
     
     return nullptr;
 }
@@ -216,11 +216,6 @@ void Sheet::MaybeIncreaseSizeToIncludePosition(Position pos)
     }
 }
 
-/*void PrintCells(std::ostream& output, const std::function<void(const CellInterface&)>& printCell) const
-{
-    
-}*/
-
 void Sheet::PrintTexts(std::ostream& output) const 
 {
     int offset = width - 1;
@@ -234,11 +229,9 @@ void Sheet::PrintTexts(std::ostream& output) const
             }
             if(col < offset)
             {
-            //std::cout << "Placed \\t\n";
             output << "\t";
             }
         }
-        //std::cout << "Placed \\n\n";
         output << "\n";
     }
 }    
@@ -246,7 +239,6 @@ void Sheet::PrintTexts(std::ostream& output) const
 void Sheet::StoreCache(Position pos, CachedValue val) const
 {
     cache_[pos] = std::move(val);
-    //std::cout << "CACHED VALUE FOR: {" << pos.row << ", " << pos.col << "}: - \n"; 
 }
     
 void Sheet::StoreRefs(Position pos, std::vector<Position> refs) const

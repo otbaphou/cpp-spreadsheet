@@ -5,7 +5,6 @@
 #include <string>
 #include <optional>
 
-// Реализуйте следующие методы
 Cell::Cell(const SheetInterface& sheet)
 :sheet_(sheet)
 {
@@ -19,9 +18,15 @@ Cell::~Cell()
 
 void Cell::Set(std::string text)
 {
+    if(text.empty())
+    {
+        impl_.release();
+        impl_ = std::make_unique<Impl>(EmptyImpl());
+    }
+    
     is_referenced_ = false;
     
-    if(text[0] == '=')
+    if(text[0] == FORMULA_SIGN && !(text.size() == 1))
     {        
         std::string tmp(text.begin() + 1, text.end());
         std::unique_ptr<FormulaInterface> formula;
@@ -30,7 +35,7 @@ void Cell::Set(std::string text)
         {
              formula = ParseFormula(tmp);
         }
-        catch(...)
+        catch(FormulaException& e)
         {
             throw FormulaException("Error. Formula failed parsing!");
         }
@@ -44,9 +49,9 @@ void Cell::Set(std::string text)
         
         impl_.release();
         impl_ = std::make_unique<FormulaImpl>(sheet_, expr);
-    }else
+    }
+    else
     {
-        //Might or might not cause issues with is_refferenced
         impl_.release();
         impl_ = std::make_unique<TextImpl>(TextImpl(text));
     }
@@ -55,7 +60,6 @@ void Cell::Set(std::string text)
 }
 void Cell::SetPos(Position pos)
 {
-    //std::cout << "SETPOS: " << pos.col << ',' << pos.row << std::endl;
     current_pos_ = pos;
 }
 
@@ -66,8 +70,7 @@ void Cell::SetRef(bool state = true) const
 
 void Cell::Clear() 
 {
-    impl_.release();
-    impl_ = std::make_unique<Impl>(EmptyImpl());
+    Set("");
 }
 
 Cell::Value Cell::GetValue() const 
@@ -89,12 +92,8 @@ std::vector<Position> Cell::GetReferencedCells() const
 {
     if(is_referenced_)
     {
-        //std::cout << "is_referenced_" << std::endl;
         return sheet_.GetReferencedPositions(current_pos_);
     }
-    else
-    {
-        //std::cout << "!is_referenced_" << std::endl;
-        return {};
-    }
+    
+    return {};
 }

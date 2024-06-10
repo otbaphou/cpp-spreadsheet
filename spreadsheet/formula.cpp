@@ -11,11 +11,10 @@
 
 using namespace std::literals;
 
-std::ostream& operator<<(std::ostream& output, FormulaError fe) {
+std::ostream& operator<<(std::ostream& output, FormulaError fe) 
+{
     return output << fe.ToString();
 }
-
-
 
 namespace {
 class Formula : public FormulaInterface 
@@ -84,12 +83,10 @@ class Formula : public FormulaInterface
             }
             catch ( const FormulaError& e )
             {
-                //std::cout << "Handled FormulaError!\n";
                 return e;
             }
             catch(...)
             {
-                //std::cerr << "Unknown exception: \n";// << e.what() << std::endl;
                 return FormulaError::Category::Arithmetic;
             }
 
